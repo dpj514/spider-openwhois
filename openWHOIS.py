@@ -9,6 +9,11 @@ from database import Table
 from PIL import Image
 import pytesseract
 from io import BytesIO
+import tldextract
+# 指定系统默认编码为utf8
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 
 class OpenSpider(object):
@@ -23,7 +28,7 @@ class OpenSpider(object):
         re_link = re.compile('/data/whoishistory/\d')
         source = 'openwhois'
         for domain in domains:
-            self.get_whowas(domain)
+            self.get_whowas(self.domain_format(domain))
 
     def get_whowas_links(self, domain):
         """获取单个域名的whowas信息页面链接
@@ -47,7 +52,7 @@ class OpenSpider(object):
         Args:
             domain (string): utf-8编码域名
         """
-        links = self.get_whowas_links(domain)
+        links = self.get_whowas_links(self.domain_format(domain))
 
         for link in links:
             # 获取每条whowas的具体信息
@@ -65,6 +70,22 @@ class OpenSpider(object):
             expiration_date = re.match(
                 r'Registry Expiry Date: ([\S ]+)', result)
             updated_date = re.match(r'Updated Date: ([\S ]+)', result)
+    
+    def domain_format(self, raw_domain):
+        """对含中文域名进行处理
+        
+        Args:
+            raw_domain (string): 未处理域名
+        
+        Returns:
+            string: punycode编码域名
+        """
+        extract = tldextract.extract(raw_domain)
+        domain = extract[1]
+        suffix = extract[2]
+        domain = domain if domain.isalnum() else 'xn--' + unicode(domain).encode('punycode')
+        suffix = suffix if suffix.isalnum() else 'xn--' + unicode(suffix).encode('punycode')
+        return domain + '.' + suffix
 #
 # img_1 = requests.request('get' ,'http://email.openwhois.com/44c317e67c2d285720222e16541fdbc0.png')
 # img_buffer = BytesIO(img_1.content)
@@ -74,13 +95,3 @@ class OpenSpider(object):
 #                      params={'DomainHistorySearch[domain]': 'baidu.com'},
 #                      allow_redirects=False)
 # # print r.text
-
-
-r = requests.request('get', 'http://www.openwhois.com{0}'.format("/data/whoishistory/55764294"),
-                     allow_redirects=False,
-                     headers={'Host': 'www.openwhois.com',
-                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'})
-
-# print r.request.headers
-# print r.content
-print OpenSpider().get_whowas_links('中国.net')
