@@ -14,6 +14,7 @@ import tldextract
 import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
+from tools import status_to_value
 
 
 class OpenSpider(object):
@@ -59,18 +60,16 @@ class OpenSpider(object):
             result = requests.request(
                 'get', 'http://openwhois.com{0}'.format(link)).text
             source = 'openwhois'
-            domain_status = re.match(r'Domain Name: (\w+)', result)
-            registrar = re.match(r'Registrar: ([\S ]+)', result)
-            reg_name = re.match(r'Registrant Name: ([\S ]+)', result)
-            reg_phone = re.match(r'Registrant Phone:([\S ]+)', result)
-            # reg_email
-            org_name = re.match(r'Registrant Organization: ([\S ]+)', result)
-            name_server = re.match(r'Name Server: ([\S ]+)', result)
-            creation_date = re.match(r'Creation Date: ([\S ]+)', result)
-            expiration_date = re.match(
-                r'Registry Expiry Date: ([\S ]+)', result)
-            updated_date = re.match(r'Updated Date: ([\S ]+)', result)
-    
+            domain_status = ';'.join(map(status_to_value ,re.findall(r'Domain Status: ([\S ]+)(?: )', result)))
+            registrar = re.search(r'Registrar: ([\S ]+)', result).group(0)
+            reg_name = re.search(r'Registrant Name: ([\S ]+)', result).group(0)
+            reg_phone = re.search(r'Registrant Phone:([\S ]+)', result).group(0)
+            # todo: reg_email图像识别
+            org_name = re.search(r'Registrant Organization: ([\S ]+)', result).group(0)
+            name_server = ';'.join(re.findall(r'Name Server: ([\S ]+)', result))
+            creation_date = re.search(r'Creation Date: ([\S ]+)', result).group(0)
+            expiration_date = re.search(r'Registry Expiry Date: ([\S ]+)', result).group(0)
+            updated_date = re.search(r'Updated Date: ([\S ]+)', result).group(0)
     def domain_format(self, raw_domain):
         """对含中文域名进行处理
         
@@ -95,3 +94,4 @@ class OpenSpider(object):
 #                      params={'DomainHistorySearch[domain]': 'baidu.com'},
 #                      allow_redirects=False)
 # # print r.text
+print OpenSpider().get_whowas('baidu.com')
